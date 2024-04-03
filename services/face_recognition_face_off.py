@@ -1,34 +1,58 @@
+import asyncio
 import face_recognition
 from PIL import Image, ImageDraw
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+import io
+import base64
 
-def extract_faces(image_path):
-    # Load the image with face_recognition
-    image = face_recognition.load_image_file(image_path)
+app = FastAPI()
 
-    # Find all face locations in the image
-    face_locations = face_recognition.face_locations(image)
 
-    # Create a PIL ImageDraw instance
-    pil_image = Image.fromarray(image)
-    draw = ImageDraw.Draw(pil_image)
+async def extract_faces(image_bytes):
+    try:
+        # Load the image with face_recognition
+        image = face_recognition.load_image_file(io.BytesIO(image_bytes))
 
-    # Loop through each face location
-    for top, right, bottom, left in face_locations:
-        # Draw a rectangle around the face
-        draw.rectangle(((left, top), (right, bottom)), outline=(255, 0, 0), width=2)
+        # Find all face locations in the image
+        face_locations = face_recognition.face_locations(image)
 
-        # Crop and save each face
-        face_image = image[top:bottom, left:right]
-        cropped_image = Image.fromarray(face_image)
-        cropped_image.show()  # Display the extracted face
-        cropped_image.save(f"extracted_face_{top}_{right}_{bottom}_{left}.png")
+        extracted_faces = []
 
-    # Display the image with detected faces
-    pil_image.show()
+        # Loop through each face location
+        for i, (top, right, bottom, left) in enumerate(face_locations):
+            # Crop each face
+            face_image = image[top:bottom, left:right]
+            pil_image = Image.fromarray(face_image)
 
-# Hardcoded path to the image
-image_path = "test.jpg"
+            # Convert PIL image to bytes
+            img_byte_array = io.BytesIO()
+            pil_image.save(img_byte_array, format="PNG")
+            img_byte_array.seek(0)
 
-# Call the function to extract faces
-extract_faces(image_path)
+            # Append the image bytes and filename to the list
+            extracted_faces.append((f"face_{i + 1}.png", img_byte_array))
 
+        return extracted_faces
+    except Exception as e:
+        return [str(e)]
+
+
+
+@app.post("/process_image/")
+async def upload_image(file: UploadFile = File(...)):
+    try:
+        # Read image file as bytes
+        image_bytes = await file.read()
+
+        # Run face extraction in the background
+        extracted_faces = await asyncio.create_task(extract_faces(image_bytes))
+
+        # Return the array of extracted faces
+        return JSONResponse(content={"extracted_faces": extracted_faces})
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
