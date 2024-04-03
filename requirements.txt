@@ -8,7 +8,8 @@ Pillow
 # opencv-python # requires numpy, Pillow, takes time ~ 6 hrs
 face_recognition
 fastapi
-uvicorn
+uvicorn==0.16.0
+python-multipart
 
 # opencv-python # requires numpy, Pillow
 # Installing collected packages: numpy, opencv-python, zipp, importlib-metadata, Click, Pillow, dlib, face-recognition-models, face-recognition, dataclasses, pydantic, contextlib2, idna, immutables, contextvars, sniffio, anyio, starlette, fastapi, asgiref, h11, uvicorn
