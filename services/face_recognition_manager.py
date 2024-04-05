@@ -1,26 +1,13 @@
 import os
 import face_recognition
+from face_recognizer import FaceRecognizer
 from PIL import Image
 import io
 
 class FaceRecognitionManager:
     def __init__(self, known_faces_dir):
-        self.known_faces_dir = known_faces_dir
-        self.known_faces = []
-        self.known_face_names = []
-        self.load_known_faces()
-
-    def load_known_faces(self):
-        if self.known_faces:
-            return
-
-        for filename in os.listdir(self.known_faces_dir):
-            if filename.endswith(".jpg") or filename.endswith(".png"):
-                image_path = os.path.join(self.known_faces_dir, filename)
-                image = face_recognition.load_image_file(image_path)
-                face_encoding = face_recognition.face_encodings(image)[0]
-                self.known_faces.append(face_encoding)
-                self.known_face_names.append(os.path.splitext(filename)[0])
+	self.face_recognizer = FaceRecognizer(known_faces_dir)
+	self.face_recognizer.load_known_faces()
 
     async def extract_and_recognize_faces(self, image_bytes):
         try:
@@ -82,3 +69,8 @@ class FaceRecognitionManager:
             os.remove(image_path)
         except ValueError:
             print(f"Face with name '{name}' not found.")
+if __name__ == "__main__":
+    print("starting FaceRecognitionManager")
+    faceRecognitionManager = FaceRecognitionManager("./face_bank)
+    faceRecognitionManager.load_known_faces()
+

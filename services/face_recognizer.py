@@ -1,5 +1,6 @@
 import os
 import face_recognition
+from extract_faces import extract_faces
 import shutil
 import io
 
@@ -55,22 +56,32 @@ class FaceRecognizer:
         except ValueError:
             print(f"Face with name '{name}' not found.")
 
-    def detect_faces(self, image_paths):
+    def detect_faces(self, image_bytes):
         results = []
-        for image_path in image_paths:
-            unknown_image = face_recognition.load_image_file(image_path)
+        id=0
+        faces = extract_faces(image_bytes)
+        print(f"I have {len(self.known_faces)} faces in memory, found {len(faces)} in image")
+        for face in faces:
+            print(f"getting face{id}")
+            unknown_image = face_recognition.load_image_file(face[1])
             unknown_face_encoding = face_recognition.face_encodings(unknown_image)[0]
             match_indices = [i for i, x in enumerate(face_recognition.compare_faces(self.known_faces, unknown_face_encoding)) if x]
             if match_indices:
+                print(f"successfully matched face{id}")
                 match_names = [self.known_face_names[i] for i in match_indices]
-                results.append((image_path, match_names))
+                results.append((match_names[0], face[1]))
             else:
-                results.append((image_path, []))
+                print(f"could not match face{id}")
+                results.append((f"face{id}", face[1]))
+            id=id+1
         return results
         
 if __name__ == "__main__":
     print("starting FaceRecognizer")
+    with open("test.jpg", "rb") as f:
+        # Read image file as bytes
+        image_bytes = f.read()
     faceRecognizer = FaceRecognizer("./face_bank")
     faceRecognizer.load_known_faces()
     # faceRecognizer.remember_face("face_1.png", "romi")
-    print(faceRecognizer.detect_faces(["face_1.png"]))
+    print(faceRecognizer.detect_faces(image_bytes))
