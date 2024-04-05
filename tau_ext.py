@@ -6,7 +6,8 @@ import io
 import numpy as np
 import uvicorn
 import asyncio
-from services.face_recognition_face_off import extract_faces
+#from services.face_recognition_face_off import extract_faces
+from services.face_recognizer import FaceRecognizer
 import os
 import zipfile
 
@@ -20,7 +21,9 @@ async def upload_image(file: UploadFile = File(...)):
         image_bytes = await file.read()
 
         # Process the image
-        processed_images = await extract_faces(image_bytes)
+        faceRecognizer = FaceRecognizer("./face_bank")
+        faceRecognizer.load_known_faces()
+        processed_images = faceRecognizer.detect_faces(image_bytes)
         
         # Return the processed images as a multipart response
         headers = {"Content-Disposition": "attachment; filename=processed_faces.zip"}

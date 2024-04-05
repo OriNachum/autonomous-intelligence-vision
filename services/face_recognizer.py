@@ -1,8 +1,14 @@
 import os
 import face_recognition
-from extract_faces import extract_faces
 import shutil
 import io
+
+if __name__ == "__main__":
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.append(parent_dir)
+
+from services.extract_faces import extract_faces
 
 class FaceRecognizer:
     def __init__(self, known_faces_dir):
@@ -23,7 +29,7 @@ class FaceRecognizer:
                 image = face_recognition.load_image_file(image_path)
                 face_encoding = face_recognition.face_encodings(image)[0]
                 self.known_faces.append(face_encoding)
-                self.known_face_names.append(os.path.splitext(filename)[0])
+                self.known_face_names.append(filename)
 
     def remember_face(self, image_path, name):
         # Extract file extension from the image_path
