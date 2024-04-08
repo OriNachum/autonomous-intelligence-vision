@@ -32,7 +32,7 @@ class FaceRecognizer:
                 self.known_face_names.append(os.path.splitext(filename)[0])
 
     def remember_face(self, image_bytes, file_extension, name):
-		detected_faces = _detect_faces(image_bytes)
+        detected_faces = _detect_faces(image_bytes)
         image = face_recognition.load_image_file(io.BytesIO(image_bytes))
         face_encoding = face_recognition.face_encodings(image)[0]
         self.known_faces.append(face_encoding)
@@ -77,7 +77,7 @@ class FaceRecognizer:
             raise ValueError(f"Face with name '{name}' not found.")
 
     def detect_faces(self, image_bytes):
-		return _detect_faces(self, image_bytes):
+        return _detect_faces(self, image_bytes)
 
 
     def _detect_faces(self, image_bytes):
