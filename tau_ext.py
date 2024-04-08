@@ -59,6 +59,30 @@ async def remember_face(image: UploadFile = File(...), name: str = ""):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
+@app.post("/forget_face/")
+async def forget_face(image: UploadFile = File(...), name: str = ""):
+    try:
+        # Get the filename
+        filename = image.filename
+        
+        # Extract the file extension
+        file_extension = os.path.splitext(filename)[1]
+
+        # Read image file as bytes
+        image_bytes = await image.read()
+                # Get the filename
+
+        print(len(image_bytes))
+        # Process the image and remember the face
+        faceRecognizer = FaceRecognizer("./face_bank")
+        faceRecognizer.forget_face(image_bytes, file_extension, name)
+        
+        return JSONResponse(content={"message": "Face remembered successfully"}, status_code=200)
+    except Exception as e:
+        print(e)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
 def _generate_zip(files):
     """
     Generates a zip file containing the provided files.

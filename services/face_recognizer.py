@@ -63,7 +63,6 @@ class FaceRecognizer:
                         del self.known_face_names[name_index]
                         
                         # Delete the image file
-                        
                         image_path = os.path.join(self.known_faces_dir, filename)
                         if os.path.exists(image_path):
                             os.remove(image_path)
@@ -71,12 +70,11 @@ class FaceRecognizer:
                         else:
                             print(f"Image file for face with name '{name}' not found.")
                         return  # Exit the method after successful deletion
-                print(f"No detected face with name '{name}' matches the known face.")
+                raise ValueError(f"No detected face with name '{name}' matches the known face.")
             else:
-                print(f"No detected face with name '{name}' found.")
+                raise ValueError(f"No detected face with name '{name}' found.")
         except ValueError:
-            print(f"Face with name '{name}' not found.")
-
+            raise ValueError(f"Face with name '{name}' not found.")
 
     def detect_faces(self, image_bytes):
 		return _detect_faces(self, image_bytes):
