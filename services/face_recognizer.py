@@ -29,16 +29,11 @@ class FaceRecognizer:
                 image = face_recognition.load_image_file(image_path)
                 face_encoding = face_recognition.face_encodings(image)[0]
                 self.known_faces.append(face_encoding)
-                self.known_face_names.append(filename)
+                self.known_face_names.append(os.path.splitext(filename)[0])
 
-    def remember_face(self, image_path, name):
-        # Extract file extension from the image_path
-        file_extension = os.path.splitext(image_path)[1]
-
-        with open(image_path, "rb") as f:
-            # Read image file as bytes
-            image_bytes = f.read()
-            image = face_recognition.load_image_file(io.BytesIO(image_bytes))
+    def remember_face(self, image_bytes, file_extension, name):
+		detected_faces = _detect_faces(image_bytes)
+        image = face_recognition.load_image_file(io.BytesIO(image_bytes))
         face_encoding = face_recognition.face_encodings(image)[0]
         self.known_faces.append(face_encoding)
         self.known_face_names.append(name)
@@ -46,23 +41,48 @@ class FaceRecognizer:
         # Save the image in the known faces directory
         filename = f"{name}.{file_extension}"
         new_image_path = os.path.join(self.known_faces_dir, filename)
-        shutil.copy(image_path, new_image_path)
+        with open(new_image_path, "wb") as f:
+            f.write(image_bytes)
 
-    def forget_face(self, name):
+    def forget_face(self, image_bytes, file_extension, name):
         try:
-            
             name_index = self.known_face_names.index(name)
-            del self.known_faces[name_index]
-            del self.known_face_names[name_index]
-
-            # Delete the image file
-            filename = f"{name}.jpg"
-            image_path = os.path.join(self.known_faces_dir, filename)
-            os.remove(image_path)
+            known_face = self.known_faces[name_index]
+            
+            detected_faces = _detect_faces(image_bytes)
+            # Filter detected faces by name
+            filename = f"{name}.png"
+            detected_faces_with_name = [(face_name, face_encodings) for face_name, face_encodings in detected_faces if face_name == filename]
+            
+            if detected_faces_with_name:
+                # Compare embeddings of filtered detected faces with the known face
+                for face_name, detected_face_encoding in detected_faces_with_name:
+                    if face_recognition.compare_faces([known_face_encoding], detected_face_encoding)[0]:
+                        # Delete from memory
+                        del self.known_faces[name_index]
+                        del self.known_face_names[name_index]
+                        
+                        # Delete the image file
+                        
+                        image_path = os.path.join(self.known_faces_dir, filename)
+                        if os.path.exists(image_path):
+                            os.remove(image_path)
+                            print(f"Face with name '{name}' forgotten successfully.")
+                        else:
+                            print(f"Image file for face with name '{name}' not found.")
+                        return  # Exit the method after successful deletion
+                print(f"No detected face with name '{name}' matches the known face.")
+            else:
+                print(f"No detected face with name '{name}' found.")
         except ValueError:
             print(f"Face with name '{name}' not found.")
 
+
     def detect_faces(self, image_bytes):
+		return _detect_faces(self, image_bytes):
+
+
+    def _detect_faces(self, image_bytes):
         results = []
         id=0
         faces = extract_faces(image_bytes)
@@ -78,7 +98,7 @@ class FaceRecognizer:
                 results.append((match_names[0], face[1]))
             else:
                 print(f"could not match face{id}")
-                results.append((f"face{id}", face[1]))
+                results.append((f"face-{id}.png", face[1]))
             id=id+1
         return results
         
@@ -89,5 +109,10 @@ if __name__ == "__main__":
         image_bytes = f.read()
     faceRecognizer = FaceRecognizer("./face_bank")
     faceRecognizer.load_known_faces()
-    # faceRecognizer.remember_face("face_1.png", "romi")
+            # Extract file extension from the image_path
+    #file_extension = os.path.splitext(image_path)[1]
+    #with open(image_path, "rb") as f:
+    #    Read image file as bytes
+    #    image_bytes = f.read()
+    #    faceRecognizer.remember_face(image_bytes, "png", "romi")
     print(faceRecognizer.detect_faces(image_bytes))
