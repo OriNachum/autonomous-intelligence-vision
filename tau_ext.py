@@ -33,6 +33,7 @@ async def upload_image(file: UploadFile = File(...)):
             media_type="application/zip"
         )
     except Exception as e:
+        print(e)
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/remember_face/")
