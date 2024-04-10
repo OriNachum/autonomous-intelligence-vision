@@ -90,13 +90,16 @@ class FaceRecognizer:
             unknown_face_encoding = face_recognition.face_encodings(unknown_image)[0]
             match_indices = [i for i, x in enumerate(face_recognition.compare_faces(self.known_faces, unknown_face_encoding)) if x]
             if match_indices:
-                print(f"successfully matched face{id}")
-                match_names = [self.known_face_names[i] for i in match_indices]
-                results.append((match_names[0], face[1]))
+                print(f"successfully matched face{id} with {len(match_indices)} faces")
+                for index in match_indices:
+                    match_name = self.known_face_names[index]
+                    print(f"adding face {match_name}") 
+                    results.append((f"{match_name}.png", face[1]))
             else:
                 print(f"could not match face{id}")
                 results.append((f"face-{id}.png", face[1]))
             id=id+1
+        print(f"returning {len(results)} faces")
         return results
         
 if __name__ == "__main__":

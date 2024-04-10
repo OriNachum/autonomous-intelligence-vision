@@ -14,7 +14,7 @@ import zipfile
 app = FastAPI()
 
 
-@app.post("/process_image/")
+@app.post("/detect_faces/")
 async def upload_image(file: UploadFile = File(...)):
     try:
         # Read image file as bytes
@@ -24,7 +24,7 @@ async def upload_image(file: UploadFile = File(...)):
         faceRecognizer = FaceRecognizer("./face_bank")
         faceRecognizer.load_known_faces()
         processed_images = faceRecognizer.detect_faces(image_bytes)
-        
+        print(f"packing {len(processed_images)} images"
         # Return the processed images as a multipart response
         headers = {"Content-Disposition": "attachment; filename=processed_faces.zip"}
         return StreamingResponse(
