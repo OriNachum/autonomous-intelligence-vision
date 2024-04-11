@@ -15,12 +15,12 @@ class FaceRecognizer:
         if not os.path.isdir(known_faces_dir):
             os.makedirs(known_faces_dir)
         self.known_faces_dir = known_faces_dir
-        self.known_faces = []
+        self.known_faces_encodings = []
         self.known_face_names = []
         self.load_known_faces()
 
     def load_known_faces(self):
-        if self.known_faces:
+        if self.known_faces_encodings:
             return
 
         for filename in os.listdir(self.known_faces_dir):
@@ -28,14 +28,14 @@ class FaceRecognizer:
                 image_path = os.path.join(self.known_faces_dir, filename)
                 image = face_recognition.load_image_file(image_path)
                 face_encoding = face_recognition.face_encodings(image)[0]
-                self.known_faces.append(face_encoding)
+                self.known_faces_encodings.append(face_encoding)
                 self.known_face_names.append(os.path.splitext(filename)[0])
 
     def remember_face(self, image_bytes, file_extension, name):
-        detected_faces = _detect_faces(self, image_bytes)
+        detected_faces = self._detect_faces(image_bytes)
         image = face_recognition.load_image_file(io.BytesIO(image_bytes))
         face_encoding = face_recognition.face_encodings(image)[0]
-        self.known_faces.append(face_encoding)
+        self.known_faces_encodings.append(face_encoding)
         self.known_face_names.append(name)
 
         # Save the image in the known faces directory
@@ -46,34 +46,54 @@ class FaceRecognizer:
 
     def forget_face(self, image_bytes, file_extension, name):
         try:
+            print("forget_face: getting faces by name")
             name_index = self.known_face_names.index(name)
-            known_face = self.known_faces[name_index]
+            known_face_encodings = self.known_faces_encodings[name_index]
             
-            detected_faces = _detect_faces(self, image_bytes)
+            print("forget_face: getting faces from input")
+            detected_faces = self._detect_faces(image_bytes)
+            print("forget_face: loading known face")
+            #known_face_loaded = face_recognition.load_image_file(io.BytesIO(known_face))
+            print("forget_face: getting loaded known face encodings")
+            #known_face_encoding = face_recognition.face_encodings(known_face_loaded)[0]
+
             # Filter detected faces by name
             filename = f"{name}.png"
-            detected_faces_with_name = [(face_name, face_encodings) for face_name, face_encodings in detected_faces if face_name == filename]
-            
+            print("forget_face: getting detected faces with name")
+            detected_faces_with_name = [(face_name, face_bytes) for face_name, face_bytes in detected_faces if face_name == filename]
+
+            print("forget_face: handling detected faces with name")
             if detected_faces_with_name:
                 # Compare embeddings of filtered detected faces with the known face
-                for face_name, detected_face_encoding in detected_faces_with_name:
-                    if face_recognition.compare_faces([known_face_encoding], detected_face_encoding)[0]:
+                for face_name, detected_face in detected_faces_with_name:
+                    print(f"forget_face: handling detected faces with name {face_name}")
+                    print("forget_face: loading known face")
+                    detected_face_loaded = face_recognition.load_image_file(detected_face)
+                    print("forget_face: getting loaded known face encodings")
+                    detected_face_encoding = face_recognition.face_encodings(detected_face_loaded)[0]
+
+                    print("forget_face: comparing faces")
+                    if face_recognition.compare_faces([known_face_encodings], detected_face_encoding):
                         # Delete from memory
-                        del self.known_faces[name_index]
+                        del self.known_faces_encodings[name_index]
                         del self.known_face_names[name_index]
                         
                         # Delete the image file
                         image_path = os.path.join(self.known_faces_dir, filename)
+                        print(f"forget_face: trying to delete {image_path}")
                         if os.path.exists(image_path):
                             os.remove(image_path)
                             print(f"Face with name '{name}' forgotten successfully.")
                         else:
                             print(f"Image file for face with name '{name}' not found.")
                         return  # Exit the method after successful deletion
+                    else:
+                        print("forget_face: compare failed")
                 raise ValueError(f"No detected face with name '{name}' matches the known face.")
             else:
                 raise ValueError(f"No detected face with name '{name}' found.")
-        except ValueError:
+        except ValueError as e:
+            print(e)
             raise ValueError(f"Face with name '{name}' not found.")
 
     def detect_faces(self, image_bytes):
@@ -83,17 +103,17 @@ class FaceRecognizer:
         results = []
         id=0
         faces = extract_faces(image_bytes)
-        print(f"I have {len(self.known_faces)} faces in memory, found {len(faces)} in image")
+        print(f"I have {len(self.known_faces_encodings)} faces in memory, found {len(faces)} in image")
         for face in faces:
             print(f"getting face{id}")
             unknown_image = face_recognition.load_image_file(face[1])
             unknown_face_encoding = face_recognition.face_encodings(unknown_image)[0]
-            match_indices = [i for i, x in enumerate(face_recognition.compare_faces(self.known_faces, unknown_face_encoding)) if x]
+            match_indices = [i for i, x in enumerate(face_recognition.compare_faces(self.known_faces_encodings, unknown_face_encoding)) if x]
             if match_indices:
                 print(f"successfully matched face{id} with {len(match_indices)} faces")
                 for index in match_indices:
                     match_name = self.known_face_names[index]
-                    print(f"adding face {match_name}") 
+                    print(f"adding to results face {match_name}") 
                     results.append((f"{match_name}.png", face[1]))
             else:
                 print(f"could not match face{id}")
